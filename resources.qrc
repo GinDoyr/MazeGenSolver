@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resources/img/astar.png</file>
+        <file>resources/img/bfs.png</file>
+        <file>resources/img/dejkstra.png</file>
+        <file>resources/img/dfs.png</file>
+        <file>resources/img/kruskal.png</file>
+        <file>resources/img/prim.png</file>
+        <file>resources/gifs/astar.gif</file>
+        <file>resources/gifs/bfs.gif</file>
+        <file>resources/gifs/dejkstra.gif</file>
+        <file>resources/gifs/dfs.gif</file>
+        <file>resources/gifs/kruskal.gif</file>
+        <file>resources/gifs/prim.gif</file>
+    </qresource>
+</RCC>
