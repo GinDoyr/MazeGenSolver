@@ -8,7 +8,7 @@ void MazeGeneratorWorker::generate(Maze &maze, const QString &algorithmName,
 {
     outSteps.clear();
 
-    std::unique_ptr<IGenerator> generator;
+    std::unique_ptr<Generator> generator;
 
     if (algorithmName == QString::fromUtf8("DFS (Поиск в Глубину)")) {
         generator = std::make_unique<DFSGenerator>(density);
