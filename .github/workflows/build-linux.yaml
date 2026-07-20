@@ -1,0 +1,60 @@
+name: Build Linux AppImage
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-appimage:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake qt6-base-dev qt6-tools-dev libgl1-mesa-dev libfuse2
+
+    - name: Download linuxdeployqt
+      run: |
+        wget -c https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+        chmod +x linuxdeployqt-continuous-x86_64.AppImage
+
+    - name: Configure and Build
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr ..
+        make -j$(nproc)
+
+    - name: Create AppDir structure
+      run: |
+        mkdir -p AppDir/usr/bin
+        mkdir -p AppDir/usr/share/applications
+        mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+        
+        cp build/MazeGenSolver AppDir/usr/bin/
+        
+        echo "[Desktop Entry]" > AppDir/usr/share/applications/mazegensolver.desktop
+        echo "Type=Application" >> AppDir/usr/share/applications/mazegensolver.desktop
+        echo "Name=MazeGenSolver" >> AppDir/usr/share/applications/mazegensolver.desktop
+        echo "Comment=Maze Generator and Solver" >> AppDir/usr/share/applications/mazegensolver.desktop
+        echo "Exec=MazeGenSolver" >> AppDir/usr/share/applications/mazegensolver.desktop
+        echo "Icon=mazegensolver" >> AppDir/usr/share/applications/mazegensolver.desktop
+        echo "Categories=Utility;" >> AppDir/usr/share/applications/mazegensolver.desktop
+
+    - name: Build AppImage
+      env:
+        VERSION: 1.0.0
+      run: |
+        # Запускаем linuxdeployqt, который найдет все зависимости Qt и упакует их в один файл
+        ./linuxdeployqt-continuous-x86_64.AppImage AppDir/usr/share/applications/mazegensolver.desktop -appimage -no-copy-copyright-files
+
+    - name: Upload AppImage Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MazeGenSolver-Linux-AppImage
+        path: MazeGenSolver-*.AppImage
