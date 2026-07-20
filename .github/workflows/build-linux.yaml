@@ -13,45 +13,61 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install Qt 6 and build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential cmake qt6-base-dev qt6-tools-dev libgl1-mesa-dev libfuse2
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          qt6-base-dev \
+          qt6-base-dev-tools \
+          qt6-tools-dev \
+          qt6-tools-dev-tools \
+          libgl1-mesa-dev \
+          libfuse2 \
+          desktop-file-utils
 
-    - name: Download linuxdeployqt
-      run: |
-        wget -c https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
-        chmod +x linuxdeployqt-continuous-x86_64.AppImage
-
-    - name: Configure and Build
+    - name: Configure and Build project
       run: |
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr ..
         make -j$(nproc)
+        make install DESTDIR=../AppDir
 
-    - name: Create AppDir structure
+    - name: Download linuxdeploy tools
       run: |
-        mkdir -p AppDir/usr/bin
+        wget -c https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+        wget -c https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+        chmod +x linuxdeploy-x86_64.AppImage
+        chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
+
+    - name: Create .desktop file and icon
+      run: |
         mkdir -p AppDir/usr/share/applications
         mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
         
-        cp build/MazeGenSolver AppDir/usr/bin/
+        cat > AppDir/usr/share/applications/mazegensolver.desktop << 'EOF'
+        [Desktop Entry]
+        Type=Application
+        Name=MazeGenSolver
+        Comment=Maze Generator and Solver
+        Exec=MazeGenSolver
+        Icon=mazegensolver
+        Categories=Utility;Education;
+        EOF
         
-        echo "[Desktop Entry]" > AppDir/usr/share/applications/mazegensolver.desktop
-        echo "Type=Application" >> AppDir/usr/share/applications/mazegensolver.desktop
-        echo "Name=MazeGenSolver" >> AppDir/usr/share/applications/mazegensolver.desktop
-        echo "Comment=Maze Generator and Solver" >> AppDir/usr/share/applications/mazegensolver.desktop
-        echo "Exec=MazeGenSolver" >> AppDir/usr/share/applications/mazegensolver.desktop
-        echo "Icon=mazegensolver" >> AppDir/usr/share/applications/mazegensolver.desktop
-        echo "Categories=Utility;" >> AppDir/usr/share/applications/mazegensolver.desktop
+        touch AppDir/usr/share/icons/hicolor/256x256/apps/mazegensolver.png
 
-    - name: Build AppImage
+    - name: Build AppImage with linuxdeploy
       env:
-        VERSION: 1.0.0
+        QMAKE: /usr/lib/qt6/bin/qmake
+        DEPLOY_PLATFORM_THEMES: 1
       run: |
-        # Запускаем linuxdeployqt, который найдет все зависимости Qt и упакует их в один файл
-        ./linuxdeployqt-continuous-x86_64.AppImage AppDir/usr/share/applications/mazegensolver.desktop -appimage -no-copy-copyright-files
+        ./linuxdeploy-x86_64.AppImage --appdir AppDir
+        ./linuxdeploy-plugin-qt-x86_64.AppImage --appdir AppDir
+        ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
 
     - name: Upload AppImage Artifact
       uses: actions/upload-artifact@v4
