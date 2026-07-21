@@ -630,7 +630,59 @@
          </widget>
         </item>
         <item>
-         <widget class="QTableWidget" name="table_stats"/>
+         <widget class="QTableWidget" name="table_stats">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="columnCount">
+           <number>6</number>
+          </property>
+          <attribute name="horizontalHeaderVisible">
+           <bool>true</bool>
+          </attribute>
+          <attribute name="horizontalHeaderMinimumSectionSize">
+           <number>60</number>
+          </attribute>
+          <attribute name="horizontalHeaderDefaultSectionSize">
+           <number>120</number>
+          </attribute>
+          <attribute name="horizontalHeaderStretchLastSection">
+           <bool>true</bool>
+          </attribute>
+          <attribute name="verticalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+          <column>
+           <property name="text">
+            <string>Алгоритм</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Размер лабиринта</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Время вычисления (CPU)</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Длина пути</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Посещено клеток</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Цвет</string>
+           </property>
+          </column>
+         </widget>
         </item>
         <item>
          <layout class="QFormLayout" name="formLayout_3">
@@ -712,7 +764,13 @@
    </widget>
    <addaction name="menu"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QStatusBar" name="statusbar">
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+    </font>
+   </property>
+  </widget>
   <action name="action">
    <property name="text">
     <string>О приложении</string>

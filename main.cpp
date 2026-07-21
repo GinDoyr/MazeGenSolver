@@ -1,9 +1,13 @@
-#include "mainwindow.h"
-
-
+﻿#include "mainwindow.h"
 #include <QApplication>
 
-int main(int argc, char *argv[])
+/**
+ * @brief Точка входа приложения.
+ *
+ * Создаёт QApplication и главное окно. Вся инициализация
+ * виджетов, стилей и ресурсов происходит в конструкторе MainWindow.
+ */
+int main(int argc, char* argv[])
 {
     QApplication a(argc, argv);
     MainWindow w;

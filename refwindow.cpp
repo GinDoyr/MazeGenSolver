@@ -1,7 +1,7 @@
 #include "refwindow.h"
 #include "ui_refwindow.h"
 
-RefWindow::RefWindow(QWidget *parent)
+RefWindow::RefWindow(QWidget* parent)
     : QDialog(parent)
     , ui(new Ui::RefWindow)
 {

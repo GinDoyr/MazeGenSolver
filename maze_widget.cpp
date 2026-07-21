@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cmath>
 
-MazeWidget::MazeWidget(QWidget *parent)
+MazeWidget::MazeWidget(QWidget* parent)
     : QWidget(parent)
     , currentStepIndex(0)
     , scale(1.0)
@@ -36,11 +36,11 @@ MazeWidget::MazeWidget(QWidget *parent)
     connect(&mazeSolvingTimer, &QTimer::timeout, this, &MazeWidget::onMazeSolvingTick);
 }
 
-void MazeWidget::setMaze(const Maze &maze)
+void MazeWidget::setMaze(const Maze& maze)
 {
     currentMaze = maze;
     visitedCells.assign(currentMaze.getHeight(),
-                        std::vector<bool>(currentMaze.getWidth(), false));
+        std::vector<bool>(currentMaze.getWidth(), false));
     currentPath.clear();
     currentStepIndex = 0;
     userPath.clear();
@@ -55,18 +55,17 @@ void MazeWidget::setGenerationDelay(int delayMs)
 {
     if (delayMs < 0) delayMs = 0;
     generationDelayMs = delayMs;
-
     if (animationTimer.isActive()) {
         animationTimer.setInterval(delayMs);
     }
 }
 
-void MazeWidget::setGenerationSteps(const std::vector<GenerationStep> &newSteps)
+void MazeWidget::setGenerationSteps(const std::vector<GenerationStep>& newSteps)
 {
     steps = newSteps;
     currentStepIndex = 0;
     visitedCells.assign(currentMaze.getHeight(),
-                        std::vector<bool>(currentMaze.getWidth(), false));
+        std::vector<bool>(currentMaze.getWidth(), false));
     currentPath.clear();
 }
 
@@ -77,12 +76,10 @@ void MazeWidget::startGenerationAnimation()
     }
     currentStepIndex = 0;
     visitedCells.assign(currentMaze.getHeight(),
-                        std::vector<bool>(currentMaze.getWidth(), false));
+        std::vector<bool>(currentMaze.getWidth(), false));
     currentPath.clear();
-
     isGeneratingViz = true;
     isPausedGen = false;
-
     animationTimer.setInterval(generationDelayMs);
     animationTimer.start();
 }
@@ -119,7 +116,7 @@ void MazeWidget::fitToView()
     offsetY = (height() - scaledHeight) / 2.0;
 }
 
-void MazeWidget::paintEvent(QPaintEvent *)
+void MazeWidget::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -132,23 +129,26 @@ void MazeWidget::paintEvent(QPaintEvent *)
         font.setPointSize(14);
         painter.setFont(font);
         painter.drawText(rect(), Qt::AlignCenter,
-                         ("Нажмите \"Начать генерацию\""));
+            ("Нажмите \"Начать генерацию\""));
         return;
     }
 
     drawMaze(painter);
 
-    // Приоритет: решение алгоритмами > прохождение пользователем > генерация
+    /* Приоритет отрисовки: решение > пользовательское прохождение > генерация.
+       Только один из режимов рисуется в каждый момент времени. */
     if (isMazeSolving || !solutionPaths.empty()) {
         drawSolutionPaths(painter);
-    } else if (isSolving || showUserPath) {
+    }
+    else if (isSolving || showUserPath) {
         drawSolvingProgress(painter);
-    } else {
+    }
+    else {
         drawGenerationProgress(painter);
     }
 }
 
-void MazeWidget::drawMaze(QPainter &painter)
+void MazeWidget::drawMaze(QPainter& painter)
 {
     int w = currentMaze.getWidth();
     int h = currentMaze.getHeight();
@@ -157,11 +157,13 @@ void MazeWidget::drawMaze(QPainter &painter)
     painter.translate(offsetX, offsetY);
     painter.scale(scale, scale);
 
-    // Фон лабиринта
+    /* Фон лабиринта */
     painter.fillRect(0, 0, w * baseCellSize, h * baseCellSize,
-                     QColor(245, 245, 245));
+        QColor(245, 245, 245));
 
-    // Стены
+    /* Стены: рисуем только North и West для каждой клетки,
+       а для крайних правых/нижних — ещё и East/South.
+       Это избавляет от двойной отрисовки общих стен. */
     QPen wallPen(QColor(30, 30, 30), 2.0 / scale);
     painter.setPen(wallPen);
 
@@ -172,41 +174,41 @@ void MazeWidget::drawMaze(QPainter &painter)
 
             if (currentMaze.hasWall(x, y, Direction::North)) {
                 painter.drawLine(QPointF(px, py),
-                                 QPointF(px + baseCellSize, py));
+                    QPointF(px + baseCellSize, py));
             }
             if (currentMaze.hasWall(x, y, Direction::West)) {
                 painter.drawLine(QPointF(px, py),
-                                 QPointF(px, py + baseCellSize));
+                    QPointF(px, py + baseCellSize));
             }
             if (x == w - 1 && currentMaze.hasWall(x, y, Direction::East)) {
                 painter.drawLine(QPointF(px + baseCellSize, py),
-                                 QPointF(px + baseCellSize, py + baseCellSize));
+                    QPointF(px + baseCellSize, py + baseCellSize));
             }
             if (y == h - 1 && currentMaze.hasWall(x, y, Direction::South)) {
                 painter.drawLine(QPointF(px, py + baseCellSize),
-                                 QPointF(px + baseCellSize, py + baseCellSize));
+                    QPointF(px + baseCellSize, py + baseCellSize));
             }
         }
     }
 
-    // Старт и финиш
+    /* Старт (зелёный) и финиш (красный) */
     Point start = currentMaze.getStart();
     Point end = currentMaze.getEnd();
 
     painter.fillRect(start.x * baseCellSize + 2,
-                     start.y * baseCellSize + 2,
-                     baseCellSize - 4, baseCellSize - 4,
-                     QColor(76, 175, 80));
+        start.y * baseCellSize + 2,
+        baseCellSize - 4, baseCellSize - 4,
+        QColor(76, 175, 80));
 
     painter.fillRect(end.x * baseCellSize + 2,
-                     end.y * baseCellSize + 2,
-                     baseCellSize - 4, baseCellSize - 4,
-                     QColor(244, 67, 54));
+        end.y * baseCellSize + 2,
+        baseCellSize - 4, baseCellSize - 4,
+        QColor(244, 67, 54));
 
     painter.restore();
 }
 
-void MazeWidget::drawGenerationProgress(QPainter &painter)
+void MazeWidget::drawGenerationProgress(QPainter& painter)
 {
     if (visitedCells.empty()) {
         return;
@@ -219,19 +221,19 @@ void MazeWidget::drawGenerationProgress(QPainter &painter)
     painter.translate(offsetX, offsetY);
     painter.scale(scale, scale);
 
-    // Посещённые клетки
+    /* Посещённые клетки — голубой полупрозрачный фон */
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
             if (visitedCells[y][x]) {
                 painter.fillRect(x * baseCellSize + 3,
-                                 y * baseCellSize + 3,
-                                 baseCellSize - 6, baseCellSize - 6,
-                                 QColor(100, 181, 246, 180));
+                    y * baseCellSize + 3,
+                    baseCellSize - 6, baseCellSize - 6,
+                    QColor(100, 181, 246, 180));
             }
         }
     }
 
-    // Текущий путь (стек в DFS)
+    /* Линия текущего пути (стек DFS) — рисуется только если showPath == true */
     if (showPath) {
         painter.setPen(QPen(QColor(33, 150, 243), 2.0 / scale));
         for (size_t i = 1; i < currentPath.size(); ++i) {
@@ -252,9 +254,10 @@ void MazeWidget::onAnimationTick()
         return;
     }
 
-    // Пропускаем шаги Backtrack
+    /* Пропускаем шаги Backtrack — они не нужны для визуализации,
+       только замедляют анимацию. */
     while (currentStepIndex < steps.size() &&
-           steps[currentStepIndex].type == GenerationStep::Backtrack) {
+        steps[currentStepIndex].type == GenerationStep::Backtrack) {
         ++currentStepIndex;
     }
 
@@ -266,13 +269,13 @@ void MazeWidget::onAnimationTick()
         return;
     }
 
-    const GenerationStep &step = steps[currentStepIndex];
+    const GenerationStep& step = steps[currentStepIndex];
 
     switch (step.type) {
     case GenerationStep::VisitCell:
         visitedCells[step.y][step.x] = true;
         if (showPath) {
-            currentPath.push_back({step.x, step.y});
+            currentPath.push_back({ step.x, step.y });
         }
         break;
     case GenerationStep::RemoveWall:
@@ -287,10 +290,11 @@ void MazeWidget::onAnimationTick()
     emit generationVisualizationProgress(getCurrentGenerationStep(), getTotalGenerationSteps());
 }
 
-void MazeWidget::wheelEvent(QWheelEvent *event)
+void MazeWidget::wheelEvent(QWheelEvent* event)
 {
     double factor = event->angleDelta().y() > 0 ? 1.15 : 1.0 / 1.15;
 
+    /* Зум привязан к позиции курсора — точка под мышью остаётся на месте */
     QPoint mousePos = event->position().toPoint();
     double mx = mousePos.x();
     double my = mousePos.y();
@@ -305,7 +309,7 @@ void MazeWidget::wheelEvent(QWheelEvent *event)
     update();
 }
 
-void MazeWidget::mousePressEvent(QMouseEvent *event)
+void MazeWidget::mousePressEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::LeftButton || event->button() == Qt::MiddleButton) {
         isDragging = true;
@@ -314,7 +318,7 @@ void MazeWidget::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void MazeWidget::mouseMoveEvent(QMouseEvent *event)
+void MazeWidget::mouseMoveEvent(QMouseEvent* event)
 {
     if (isDragging) {
         QPoint delta = event->pos() - lastMousePos;
@@ -325,7 +329,7 @@ void MazeWidget::mouseMoveEvent(QMouseEvent *event)
     }
 }
 
-void MazeWidget::mouseReleaseEvent(QMouseEvent *event)
+void MazeWidget::mouseReleaseEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::LeftButton || event->button() == Qt::MiddleButton) {
         isDragging = false;
@@ -333,7 +337,7 @@ void MazeWidget::mouseReleaseEvent(QMouseEvent *event)
     }
 }
 
-void MazeWidget::resizeEvent(QResizeEvent *event)
+void MazeWidget::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
     fitToView();
@@ -352,14 +356,13 @@ void MazeWidget::startSolving()
     userPath.push_back(playerPosition);
     stepCount = 0;
 
-    // Очищаем клетки генерации
+    /* Очищаем следы генерации, чтобы не мешали прохождению */
     visitedCells.assign(currentMaze.getHeight(),
-                        std::vector<bool>(currentMaze.getWidth(), false));
+        std::vector<bool>(currentMaze.getWidth(), false));
     currentPath.clear();
 
     solveTimer.start();
-    statsTimer.start(100);  // Обновление статистики каждые 100 мс
-
+    statsTimer.start(100);  /* Обновление статистики каждые 100 мс */
     update();
 }
 
@@ -376,6 +379,7 @@ bool MazeWidget::movePlayer(Direction dir)
         return false;
     }
 
+    /* Нельзя идти сквозь стену */
     if (currentMaze.hasWall(playerPosition.x, playerPosition.y, dir)) {
         return false;
     }
@@ -394,17 +398,19 @@ bool MazeWidget::movePlayer(Direction dir)
         return false;
     }
 
-    playerPosition = {nx, ny};
+    playerPosition = { nx, ny };
     stepCount++;
     addToPath(playerPosition);
 
+    /* Проверяем, достиг ли игрок финиша */
     if (playerPosition == currentMaze.getEnd()) {
         double elapsed = solveTimer.elapsed() / 1000.0;
         statsTimer.stop();
         isSolving = false;
         showUserPath = true;
         emit solvingFinished(stepCount, elapsed, static_cast<int>(userPath.size()));
-    } else {
+    }
+    else {
         double elapsed = solveTimer.elapsed() / 1000.0;
         emit solvingStatsUpdated(stepCount, elapsed, static_cast<int>(userPath.size()));
     }
@@ -413,17 +419,17 @@ bool MazeWidget::movePlayer(Direction dir)
     return true;
 }
 
-void MazeWidget::addToPath(const Point &p)
+void MazeWidget::addToPath(const Point& p)
 {
-    // Проверяем, есть ли эта точка уже в пути
+    /* Если клетка уже есть в пути — обрезаем путь до неё.
+       Это реализует "умный" путь без петель: если пользователь
+       вернулся в ранее посещённую клетку, хвост пути отбрасывается. */
     for (size_t i = 0; i < userPath.size(); ++i) {
         if (userPath[i] == p) {
-            // Удаляем эту точку и все последующие (откат)
             userPath.resize(i + 1);
             return;
         }
     }
-    // Если точки нет в пути - добавляем
     userPath.push_back(p);
 }
 
@@ -435,7 +441,7 @@ void MazeWidget::onSolvingTimerTick()
     }
 }
 
-void MazeWidget::drawSolvingProgress(QPainter &painter)
+void MazeWidget::drawSolvingProgress(QPainter& painter)
 {
     if (!isSolving && !showUserPath) {
         return;
@@ -445,7 +451,7 @@ void MazeWidget::drawSolvingProgress(QPainter &painter)
     painter.translate(offsetX, offsetY);
     painter.scale(scale, scale);
 
-    // Рисуем путь пользователя ТОЛЬКО после завершения прохождения
+    /* Путь пользователя рисуется ТОЛЬКО после завершения прохождения */
     if (showUserPath && userPath.size() > 1) {
         painter.setPen(QPen(QColor(255, 152, 0), 3.0 / scale));
         for (size_t i = 1; i < userPath.size(); ++i) {
@@ -457,26 +463,29 @@ void MazeWidget::drawSolvingProgress(QPainter &painter)
         }
     }
 
-    double px = playerPosition.x * baseCellSize + baseCellSize * 0.15;
-    double py = playerPosition.y * baseCellSize + baseCellSize * 0.15;
-    double size = baseCellSize * 0.7;
+    /* Игрок (жёлтый круг) — рисуется только во время прохождения */
+    if (isSolving) {
+        double px = playerPosition.x * baseCellSize + baseCellSize * 0.15;
+        double py = playerPosition.y * baseCellSize + baseCellSize * 0.15;
+        double size = baseCellSize * 0.7;
 
-    painter.setBrush(QColor(255, 235, 59));
-    painter.setPen(QPen(QColor(245, 127, 23), 2.0 / scale));
-    painter.drawEllipse(QPointF(px + size / 2.0, py + size / 2.0),
-                        size / 2.0, size / 2.0);
+        painter.setBrush(QColor(255, 235, 59));
+        painter.setPen(QPen(QColor(245, 127, 23), 2.0 / scale));
+        painter.drawEllipse(QPointF(px + size / 2.0, py + size / 2.0),
+            size / 2.0, size / 2.0);
+    }
 
     painter.restore();
 }
 
-void MazeWidget::setSolutionPaths(const std::vector<SolutionPath> &paths)
+void MazeWidget::setSolutionPaths(const std::vector<SolutionPath>& paths)
 {
     solutionPaths = paths;
     solvedCells.clear();
     currentPathIndices.clear();
     currentVisitedIndices.clear();
 
-    // Инициализируем структуры для анимации
+    /* Инициализируем структуры для анимации каждого пути */
     for (size_t i = 0; i < solutionPaths.size(); ++i) {
         solvedCells.push_back(std::vector<bool>(
             currentMaze.getHeight() * currentMaze.getWidth(), false));
@@ -490,11 +499,9 @@ void MazeWidget::startSolvingAnimation()
     if (solutionPaths.empty()) {
         return;
     }
-
     isMazeSolving = true;
     isPausedViz = false;
     manualSeekPosition = -1;
-
     mazeSolvingTimer.setInterval(animationDelayMs);
     mazeSolvingTimer.start();
 }
@@ -513,11 +520,11 @@ void MazeWidget::onMazeSolvingTick()
 
     bool allFinished = true;
 
+    /* Каждый путь продвигается на одну клетку за тик */
     for (size_t i = 0; i < solutionPaths.size(); ++i) {
-        const SolutionPath &solPath = solutionPaths[i];
-
+        const SolutionPath& solPath = solutionPaths[i];
         if (currentVisitedIndices[i] < solPath.visitedOrder.size()) {
-            const Point &p = solPath.visitedOrder[currentVisitedIndices[i]];
+            const Point& p = solPath.visitedOrder[currentVisitedIndices[i]];
             int index = p.y * currentMaze.getWidth() + p.x;
             solvedCells[i][index] = true;
             currentVisitedIndices[i]++;
@@ -538,7 +545,7 @@ void MazeWidget::onMazeSolvingTick()
     }
 }
 
-void MazeWidget::drawSolutionPaths(QPainter &painter)
+void MazeWidget::drawSolutionPaths(QPainter& painter)
 {
     if (solutionPaths.empty()) {
         return;
@@ -549,35 +556,36 @@ void MazeWidget::drawSolutionPaths(QPainter &painter)
     painter.scale(scale, scale);
 
     for (size_t i = 0; i < solutionPaths.size(); ++i) {
-        const SolutionPath &solPath = solutionPaths[i];
+        const SolutionPath& solPath = solutionPaths[i];
         size_t visitedIdx = currentVisitedIndices[i];
 
-        // 1. Рисуем посещённые клетки (полупрозрачный фон)
+        /* 1. Посещённые клетки — полупрозрачный фон своего цвета.
+              Последние frontierSize клеток рисуются ярким цветом (фронт). */
         for (size_t j = 0; j < visitedIdx && j < solPath.visitedOrder.size(); ++j) {
-            const Point &p = solPath.visitedOrder[j];
+            const Point& p = solPath.visitedOrder[j];
 
-            // Определяем, является ли клетка "фронтом"
-            bool isFrontier;// Только последние frontierSize клеток - фронт
+            bool isFrontier;
             isFrontier = (j + frontierSize >= visitedIdx) && (j < visitedIdx);
 
             QColor cellColor = isFrontier ? solPath.frontierColor : solPath.visitedColor;
 
             painter.fillRect(p.x * baseCellSize + 2,
-                             p.y * baseCellSize + 2,
-                             baseCellSize - 4, baseCellSize - 4,
-                             cellColor);
+                p.y * baseCellSize + 2,
+                baseCellSize - 4, baseCellSize - 4,
+                cellColor);
         }
 
-        // 2. Рисуем линию финального пути ТОЛЬКО по посещённым клеткам
-        // Находим, до какой клетки пути все клетки уже посещены
+        /* 2. Линия финального пути рисуется ТОЛЬКО по уже посещённым клеткам.
+              Это даёт эффект "проявления" пути по мере работы алгоритма. */
         size_t pathDrawEnd = 0;
         for (size_t j = 0; j < solPath.path.size(); ++j) {
-            const Point &p = solPath.path[j];
+            const Point& p = solPath.path[j];
             int index = p.y * currentMaze.getWidth() + p.x;
             if (solvedCells[i][index]) {
-                pathDrawEnd = j + 1;  // Можно рисовать до этой клетки
-            } else {
-                break;  // Останавливаемся на первой непосещённой клетке
+                pathDrawEnd = j + 1;
+            }
+            else {
+                break;
             }
         }
 
@@ -627,7 +635,6 @@ void MazeWidget::setAnimationDelay(int delayMs)
 {
     if (delayMs < 0) delayMs = 0;
     animationDelayMs = delayMs;
-
     if (mazeSolvingTimer.isActive()) {
         mazeSolvingTimer.setInterval(delayMs);
     }
@@ -653,9 +660,8 @@ void MazeWidget::resumeVisualization()
 int MazeWidget::getTotalSteps() const
 {
     if (solutionPaths.empty()) return 0;
-
     size_t maxSteps = 0;
-    for (const auto &path : solutionPaths) {
+    for (const auto& path : solutionPaths) {
         if (path.visitedOrder.size() > maxSteps) {
             maxSteps = path.visitedOrder.size();
         }
@@ -666,7 +672,6 @@ int MazeWidget::getTotalSteps() const
 int MazeWidget::getCurrentStep() const
 {
     if (currentVisitedIndices.empty()) return 0;
-
     size_t maxStep = 0;
     for (size_t idx : currentVisitedIndices) {
         if (idx > maxStep) maxStep = idx;
@@ -674,25 +679,25 @@ int MazeWidget::getCurrentStep() const
     return static_cast<int>(maxStep);
 }
 
+/* Перематывает анимацию решения к указанному шагу.
+   Сбрасывает solvedCells и заново применяет все посещения до targetIdx. */
 void MazeWidget::seekTo(int step)
 {
     if (solutionPaths.empty()) return;
 
     manualSeekPosition = step;
 
-    // Сбрасываем все solvedCells
     for (size_t i = 0; i < solutionPaths.size(); ++i) {
         std::fill(solvedCells[i].begin(), solvedCells[i].end(), false);
     }
 
-    // Восстанавливаем состояние до указанного шага
     for (size_t i = 0; i < solutionPaths.size(); ++i) {
-        const SolutionPath &solPath = solutionPaths[i];
+        const SolutionPath& solPath = solutionPaths[i];
         size_t targetIdx = static_cast<size_t>(
             std::min(step, static_cast<int>(solPath.visitedOrder.size())));
 
         for (size_t j = 0; j < targetIdx; ++j) {
-            const Point &p = solPath.visitedOrder[j];
+            const Point& p = solPath.visitedOrder[j];
             int index = p.y * currentMaze.getWidth() + p.x;
             solvedCells[i][index] = true;
         }
@@ -703,21 +708,18 @@ void MazeWidget::seekTo(int step)
     emit visualizationProgress(getCurrentStep(), getTotalSteps());
 }
 
-void MazeWidget::updateAlgorithmColor(const QString &algorithmName, const QColor &newColor)
+void MazeWidget::updateAlgorithmColor(const QString& algorithmName, const QColor& newColor)
 {
-    for (auto &path : solutionPaths) {
+    for (auto& path : solutionPaths) {
         if (path.algorithmName == algorithmName) {
             path.pathColor = newColor;
-
-            // visitedColor — полупрозрачная версия основного цвета
             path.visitedColor = QColor(newColor.red(), newColor.green(), newColor.blue(), 90);
 
-            // frontierColor — яркая и насыщенная версия
+            /* frontierColor — яркая версия основного цвета через HSL */
             QColor hsl = newColor.toHsl();
             int newLightness = std::min(255, static_cast<int>(hsl.lightness() * 1.4));
             int newSaturation = std::min(255, static_cast<int>(hsl.saturation() * 1.3));
             path.frontierColor = QColor::fromHsl(hsl.hue(), newSaturation, newLightness, 230);
-
             break;
         }
     }
@@ -751,28 +753,28 @@ int MazeWidget::getCurrentGenerationStep() const
     return static_cast<int>(currentStepIndex);
 }
 
+/* Перематывает анимацию генерации к указанному шагу.
+   Создаёт временную копию лабиринта, применяет все шаги до targetStep,
+   затем синхронизирует стены с текущим лабиринтом. */
 void MazeWidget::seekGenerationTo(int step)
 {
     if (steps.empty()) return;
 
-    // Сбрасываем состояние
     visitedCells.assign(currentMaze.getHeight(),
-                        std::vector<bool>(currentMaze.getWidth(), false));
+        std::vector<bool>(currentMaze.getWidth(), false));
     currentPath.clear();
 
-    // Восстанавливаем состояние до указанного шага
     size_t targetStep = static_cast<size_t>(
         std::min(step, static_cast<int>(steps.size())));
 
-    // Создаём временную копию лабиринта для применения шагов
     Maze tempMaze = currentMaze.createEmptyCopy();
 
     for (size_t i = 0; i < targetStep; ++i) {
-        const GenerationStep &s = steps[i];
+        const GenerationStep& s = steps[i];
         switch (s.type) {
         case GenerationStep::VisitCell:
             visitedCells[s.y][s.x] = true;
-            currentPath.push_back({s.x, s.y});
+            currentPath.push_back({ s.x, s.y });
             break;
         case GenerationStep::RemoveWall:
             tempMaze.removeWall(s.x, s.y, s.dir);
@@ -785,7 +787,7 @@ void MazeWidget::seekGenerationTo(int step)
         }
     }
 
-    // Применяем все удаления стен к текущему лабиринту
+    /* Синхронизируем стены: убираем те, что были удалены в tempMaze */
     for (int y = 0; y < currentMaze.getHeight(); ++y) {
         for (int x = 0; x < currentMaze.getWidth(); ++x) {
             for (int d = 0; d < 4; ++d) {

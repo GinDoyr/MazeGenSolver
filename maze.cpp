@@ -1,9 +1,9 @@
-#include "maze.h"
+﻿#include "maze.h"
 
 Maze::Maze()
     : width(0), height(0)
-    , start{0, 0}
-    , end{0, 0} {
+    , start{ 0, 0 }
+    , end{ 0, 0 } {
 }
 
 Maze::Maze(int width, int height)
@@ -37,6 +37,7 @@ void Maze::removeWall(int x, int y, Direction dir) {
     int dirInt = static_cast<int>(dir);
     cells[y][x].walls[dirInt] = false;
 
+    // Вычисляем координаты соседней клетки
     int nx = x, ny = y;
     switch (dir) {
     case Direction::North: ny--; break;
@@ -45,6 +46,7 @@ void Maze::removeWall(int x, int y, Direction dir) {
     case Direction::West:  nx--; break;
     }
 
+    // Убираем противоположную стену у соседа, если он в пределах лабиринта
     if (isValid(nx, ny)) {
         int oppositeDir = (dirInt + 2) % 4;
         cells[ny][nx].walls[oppositeDir] = false;
@@ -97,5 +99,6 @@ Maze Maze::createEmptyCopy() const
     Maze copy(width, height);
     copy.start = start;
     copy.end = end;
+    // Стены у copy уже установлены в true конструктором Cell
     return copy;
 }
